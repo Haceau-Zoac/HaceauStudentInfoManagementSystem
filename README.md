@@ -2,7 +2,7 @@ Haceau-学生信息管理系统
 ===
 ![Language](https://img.shields.io/badge/Language-C%23-blue.svg?style=flat-square) ![.Net Framework](https://img.shields.io/badge/.Net&nbsp;Framework-4.7.2-blue.svg?style=flat-square) ![MySQL](https://img.shields.io/badge/MySQL-5.7-skyblue.svg?style=flat-square)
 [![Gitee](https://img.shields.io/badge/Gitee-辰落火辉Haceau-red.svg?style=flat-square)](https://gitee.com/haceau/HaceauStudentInfoManagementSystem)
-[![Github](https://img.shields.io/badge/Github-HaceauZoac-blue.svg?style=flat-square)](https://gitee.com/haceau/HaceauStudentInfoManagementSystem)
+[![Github](https://img.shields.io/badge/Github-HaceauZoac-blue.svg?style=flat-square)](https://github.com/Haceau-Zoac/HaceauStudentInfoManagementSystem)
 
 简介
 ---
