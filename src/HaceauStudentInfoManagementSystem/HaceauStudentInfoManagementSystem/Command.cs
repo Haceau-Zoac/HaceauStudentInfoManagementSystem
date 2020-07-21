@@ -21,7 +21,7 @@ namespace Haceau.StudentInformationManagementSystem
             }
             catch (Exception e)
             {
-                Console.WriteLine("在读取文件的过程中发生了异常！");
+                Console.WriteLine("在读取文件的过程中发生了异常！请检查config.txt");
                 Console.WriteLine($"错误信息：{e.Message}");
             }
             Back();
