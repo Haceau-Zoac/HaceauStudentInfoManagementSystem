@@ -9,7 +9,7 @@ namespace Haceau.StudentInformationManagementSystem
         /// </summary>
         public static void Main()
         {
-            Console.WriteLine("Haceau-学生信息管理系统1.0.0");
+            Console.WriteLine("Haceau-学生信息管理系统1.2.0");
 
             // 获取输入
             int command;
@@ -47,6 +47,9 @@ namespace Haceau.StudentInformationManagementSystem
                     case 6:
                         Command.FileExit();
                         break;
+                    case 7:
+                        Command.FileIn();
+                        break;
                     default:
                         Console.WriteLine("输入错误！");
                         Command.Back();
@@ -67,6 +70,7 @@ namespace Haceau.StudentInformationManagementSystem
             Console.WriteLine("4.删除");
             Console.WriteLine("5.清空");
             Console.WriteLine("6.导出");
+            Console.WriteLine("7.导入");
         }
     }
 }

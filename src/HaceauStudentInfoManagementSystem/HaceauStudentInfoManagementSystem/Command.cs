@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.Remoting.Messaging;
 using System.Text;
 using MySql.Data.MySqlClient;
@@ -17,7 +19,7 @@ namespace Haceau.StudentInformationManagementSystem
         {
             try
             {
-                return System.IO.File.ReadAllText("config.txt");
+                return File.ReadAllText("config.txt");
             }
             catch (Exception e)
             {
@@ -86,7 +88,7 @@ namespace Haceau.StudentInformationManagementSystem
                 Console.WriteLine("输入错误！请重新输入");
                 Console.Write("age > ");
             }
-            // 存储数据
+            // 添加数据
             MySqlConnection conn = CreateMySql(connect);
             try
             {
@@ -107,7 +109,6 @@ namespace Haceau.StudentInformationManagementSystem
                 conn.Clone();
                 Back();
             }
-
         }
 
         /// <summary>
@@ -230,7 +231,7 @@ namespace Haceau.StudentInformationManagementSystem
             try
             {
                 conn.Open();
-                string sql = $"TRUNCATE TABLE student";
+                string sql = "TRUNCATE TABLE student";
                 MySqlCommand cmd = new MySqlCommand(sql, conn);
                 cmd.ExecuteNonQuery();
                 Console.WriteLine("数据清空完成！");
@@ -289,6 +290,71 @@ namespace Haceau.StudentInformationManagementSystem
             catch (Exception e)
             {
                 Console.WriteLine("导出数据时发生了错误！");
+                Console.WriteLine($"错误信息：{e.Message}");
+            }
+            finally
+            {
+                conn.Clone();
+                Back();
+            }
+        }
+
+        /// <summary>
+        /// 导入数据
+        /// </summary>
+        public static void FileIn()
+        {
+            Console.WriteLine("导入方式？");
+            Console.WriteLine("1.覆盖");
+            Console.WriteLine("2.在结尾添加");
+            int mode;
+            Console.Write("Mode > ");
+            while (!int.TryParse(Console.ReadLine(), out mode))
+            {
+                Console.WriteLine("输入错误！");
+                Console.Write("Mode > ");
+            }
+            Console.WriteLine("文件路径？");
+            Console.Write("File > ");
+            string file = Console.ReadLine();
+            if (!File.Exists(file))
+            {
+                Console.WriteLine("文件不存在！");
+                Console.Write("File > ");
+                file = Console.ReadLine();
+            }
+            FileStream fs = new FileStream($@"{file}", FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            StreamReader sr = new StreamReader(fs);
+
+            // 读取数据
+            MySqlConnection conn = CreateMySql(connect);
+            try
+            {
+                conn.Open();
+                string sql = "";
+                MySqlCommand cmd;
+                if (mode == 1)
+                {
+                    sql = "TRUNCATE TABLE student";
+                    cmd = new MySqlCommand(sql, conn);
+                    cmd.ExecuteNonQuery();
+                }
+                string line;
+                sr.ReadLine();
+                while ((line = sr.ReadLine()) != null)
+                {
+                    List<string> strArr = new List<string>();
+                    strArr = line.Split(new string[] { "\t\t\t" }, StringSplitOptions.RemoveEmptyEntries).ToList();
+                    sql = $"INSERT INTO student(name, age) VALUES('{strArr[1]}', {strArr[2]})";
+                    cmd = new MySqlCommand(sql, conn);
+                    cmd.ExecuteNonQuery();
+                }
+                Console.WriteLine("数据读取完成！");
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("读取数据时发生了错误！");
                 Console.WriteLine($"错误信息：{e.Message}");
             }
             finally
