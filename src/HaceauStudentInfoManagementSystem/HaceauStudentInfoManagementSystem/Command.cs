@@ -1,72 +1,11 @@
 ﻿using System;
+using System.IO;
+using System.Runtime.Remoting.Messaging;
+using System.Text;
 using MySql.Data.MySqlClient;
 
 namespace Haceau.StudentInformationManagementSystem
 {
-    class Run
-    {
-        /// <summary>
-        /// 主函数
-        /// </summary>
-        public static void Main()
-        {
-            Console.WriteLine("Haceau-学生信息管理系统1.0.0");
-
-            // 获取输入
-            int command;
-            while (true)
-            {
-                Prompt();
-                Console.Write(">>> ");
-                while (!int.TryParse(Console.ReadLine(), out command))
-                {
-                    Console.WriteLine("输入错误！");
-                    Console.Write(">>> ");
-                }
-
-                // 判断输入
-                switch (command)
-                {
-                    case 0:
-                        Command.Exit();
-                        break;
-                    case 1:
-                        Command.Read();
-                        break;
-                    case 2:
-                        Command.Write();
-                        break;
-                    case 3:
-                        Command.Change();
-                        break;
-                    case 4:
-                        Command.Remove();
-                        break;
-                    case 5:
-                        Command.Clean();
-                        break;
-                    default:
-                        Console.WriteLine("输入错误！");
-                        Command.Back();
-                        break;
-                }
-            }
-        }
-
-        /// <summary>
-        /// 菜单
-        /// </summary>
-        public static void Prompt()
-        {
-            Console.WriteLine("0.退出");
-            Console.WriteLine("1.查看");
-            Console.WriteLine("2.添加");
-            Console.WriteLine("3.修改");
-            Console.WriteLine("4.删除");
-            Console.WriteLine("5.清空");
-        }
-    }
-
     public static class Command
     {
         static string connect = ReadConfig();
@@ -88,6 +27,7 @@ namespace Haceau.StudentInformationManagementSystem
             Back();
             return "";
         }
+
         /// <summary>
         /// 退出控制台程序
         /// </summary>
@@ -265,6 +205,9 @@ namespace Haceau.StudentInformationManagementSystem
             }
         }
 
+        /// <summary>
+        /// 清空数据
+        /// </summary>
         public static void Clean()
         {
             Console.WriteLine("此操作不可逆。确定要清除吗？");
@@ -295,6 +238,57 @@ namespace Haceau.StudentInformationManagementSystem
             catch (Exception e)
             {
                 Console.WriteLine("清空数据时发生了错误！");
+                Console.WriteLine($"错误信息：{e.Message}");
+            }
+            finally
+            {
+                conn.Clone();
+                Back();
+            }
+        }
+
+        /// <summary>
+        /// 导出数据
+        /// </summary>
+        public static void FileExit()
+        {
+            MySqlConnection conn = CreateMySql(connect);
+            try
+            {
+                conn.Open();
+                string sql = "SELECT * FROM student";
+                // 读取数据
+                MySqlCommand cmd = new MySqlCommand(sql, conn);
+                MySqlDataReader reader = cmd.ExecuteReader();
+                // 导出数据
+                int mode = 0;
+                if (File.Exists($@"{Environment.CurrentDirectory}\student.txt"))
+                {
+                    Console.WriteLine("student.txt文件已存在！");
+                    Console.WriteLine("1.覆盖文件");
+                    Console.WriteLine("2.在末尾追加");
+                    Console.WriteLine("3.取消操作");
+                    Console.Write("Mode > ");
+                    while ((!int.TryParse(Console.ReadLine(), out mode)) || (mode != 1 && mode != 2 && mode != 3))
+                    {
+                        Console.WriteLine("输入错误！");
+                        Console.Write("Mode > ");
+                    }
+                }
+                if (mode == 3)
+                    return;
+                FileStream fs = new FileStream($@"student.txt", (mode == 0) ? FileMode.Create : (mode == 1) ? FileMode.Truncate : FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+                StreamWriter sw = new StreamWriter(fs, Encoding.UTF8);
+                sw.Write("ID\t\t\t姓名\t\t\t年龄\n");
+                while (reader.Read())
+                    sw.Write($"{reader.GetUInt32("id")}\t\t\t{reader.GetString("name")}\t\t\t{reader.GetUInt32("age")}\n");
+                Console.WriteLine("已导出到exe文件根目录下的student.txt！");
+                sw.Close();
+                fs.Close();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("导出数据时发生了错误！");
                 Console.WriteLine($"错误信息：{e.Message}");
             }
             finally

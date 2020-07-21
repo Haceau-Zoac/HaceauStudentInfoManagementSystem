@@ -27,12 +27,19 @@ ___
 例：
 
 		server=localhost;port=3306;database=test;user=root;password=pwd;SslMode=none;
-* 注：数据库中须有名为“student”的数据表。
+
+* 注：数据库中须有名为“student”的数据表。属性如下。
+
+		CREATE TABLE student(
+			id INT UNSIGNED AUTO_INCREMENT,
+			name VARCHAR(50) NOT NULL,
+			age INT UNSIGNED NOT NULL,
+			PRIMARY KEY (id));
 
 待办清单
 -------
-|版本|内容|
-|---|---|
-|1.1.0|导出数据|
-|1.2.0|导入数据|
-|???|???|
+|版本|内容|状态|
+|---|---|---|
+|1.1.0|导出数据|√|
+|1.2.0|导入数据|○|
+|???|???|???|
