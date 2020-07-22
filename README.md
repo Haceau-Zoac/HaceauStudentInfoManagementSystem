@@ -6,7 +6,7 @@ Haceau-学生信息管理系统
 
 简介
 ---
-该项目为个人练习制作的学生信息管理系统，使用\.Net Framework4.7.2平台上的C#语言编写，数据存储于MySQL。当前版本为1.2.0。使用了MySql.Data及其依赖的NuGet包。开源协议为GPL。保持更新中。
+该项目为个人练习制作的学生信息管理系统，使用\.Net Framework4.7.2平台上的C#语言编写，数据存储于MySQL。当前版本为1.2.0。使用了用于存储数据的MySql.Data及其依赖的NuGet包和用于操作Excel表的Panda.SimpleExcel及其依赖的NuGet包。开源协议为GPL。保持更新中。
 
 食用方法
 -------
@@ -30,7 +30,7 @@ ___
 
 		server=localhost;port=3306;database=test;user=root;password=pwd;SslMode=none;
 
-* 注：数据库中须有名为“student”的数据表。属性如下。
+* 注：数据库中须有名为“student”的数据表。命令如下。
 
 		CREATE TABLE student(
 			id INT UNSIGNED AUTO_INCREMENT,
@@ -44,5 +44,5 @@ ___
 |---|---|---|
 |1.1.0|导出数据|√|
 |1.2.0|导入数据|√|
-|1.3.0|导入/导出Execl|×|
-|???|???|???|
+|1.3.0|导出\导入Execl|×|
+|2.0.0|重构代码|×|

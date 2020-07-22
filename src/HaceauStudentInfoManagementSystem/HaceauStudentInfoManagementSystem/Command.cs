@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using MySql.Data.MySqlClient;
+using SimpleExcel;
 
 namespace Haceau.StudentInformationManagementSystem
 {
@@ -260,31 +261,80 @@ namespace Haceau.StudentInformationManagementSystem
                 // 读取数据
                 MySqlCommand cmd = new MySqlCommand(sql, conn);
                 MySqlDataReader reader = cmd.ExecuteReader();
+                // 导出格式
+                int file = 1;
+                Console.WriteLine("导出文件格式为？");
+                Console.WriteLine("1. txt文件");
+                Console.WriteLine("2. excel文件");
+                Console.Write("File > ");
+                while (!int.TryParse(Console.ReadLine(), out file))
+                {
+                    Console.WriteLine("输入错误！");
+                    Console.Write("File > ");
+                }
                 // 导出数据
                 int mode = 0;
-                if (File.Exists($@"{Environment.CurrentDirectory}\student.txt"))
+                // txt文件
+                if (file == 1)
                 {
-                    Console.WriteLine("student.txt文件已存在！");
-                    Console.WriteLine("1.覆盖文件");
-                    Console.WriteLine("2.在末尾追加");
-                    Console.WriteLine("3.取消操作");
-                    Console.Write("Mode > ");
-                    while ((!int.TryParse(Console.ReadLine(), out mode)) || (mode != 1 && mode != 2 && mode != 3))
+                    if (File.Exists($@"{Environment.CurrentDirectory}\student.txt"))
                     {
-                        Console.WriteLine("输入错误！");
+                        Console.WriteLine("student.txt文件已存在！");
+                        Console.WriteLine("1.覆盖文件");
+                        Console.WriteLine("2.在末尾追加");
+                        Console.WriteLine("3.取消操作");
                         Console.Write("Mode > ");
+                        while ((!int.TryParse(Console.ReadLine(), out mode)) || (mode != 1 && mode != 2 && mode != 3))
+                        {
+                            Console.WriteLine("输入错误！");
+                            Console.Write("Mode > ");
+                        }
                     }
+                    if (mode == 3)
+                        return;
+                    FileStream fs = new FileStream($@"student.txt", (mode == 0) ? FileMode.Create : (mode == 1) ? FileMode.Truncate : FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+                    StreamWriter sw = new StreamWriter(fs, Encoding.UTF8);
+                    sw.Write("ID\t\t\t姓名\t\t\t年龄\n");
+                    while (reader.Read())
+                        sw.Write($"{reader.GetUInt32("id")}\t\t\t{reader.GetString("name")}\t\t\t{reader.GetUInt32("age")}\n");
+                    sw.Close();
+                    fs.Close();
+                    Console.WriteLine("已导出到exe文件根目录下的student.txt！");
                 }
-                if (mode == 3)
-                    return;
-                FileStream fs = new FileStream($@"student.txt", (mode == 0) ? FileMode.Create : (mode == 1) ? FileMode.Truncate : FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
-                StreamWriter sw = new StreamWriter(fs, Encoding.UTF8);
-                sw.Write("ID\t\t\t姓名\t\t\t年龄\n");
-                while (reader.Read())
-                    sw.Write($"{reader.GetUInt32("id")}\t\t\t{reader.GetString("name")}\t\t\t{reader.GetUInt32("age")}\n");
-                Console.WriteLine("已导出到exe文件根目录下的student.txt！");
-                sw.Close();
-                fs.Close();
+                // excel文件
+                else
+                {
+                    if (File.Exists($@"{Environment.CurrentDirectory}\student.xls"))
+                    {
+                        Console.WriteLine("student.xls文件已存在！");
+                        Console.WriteLine("1.覆盖文件");
+                        Console.WriteLine("2.取消操作");
+                        Console.Write("Mode > ");
+                        while ((!int.TryParse(Console.ReadLine(), out mode)) || (mode != 1 && mode != 2))
+                        {
+                            Console.WriteLine("输入错误！");
+                            Console.Write("Mode > ");
+                        }
+                    }
+                    if (mode == 1)
+                        File.Delete("student.xls");
+                    else if (mode == 2)
+                        return;
+                    WorkBook workBook = new WorkBook();
+                    Sheet sheet = workBook.NewSheet("student");
+                    sheet.Rows[0][0].Value = "ID";
+                    sheet.Rows[0][1].Value = "姓名";
+                    sheet.Rows[0][2].Value = "年龄";
+                    for (int i = 1; reader.Read(); ++i)
+                    {
+                        sheet.Rows[i][0].Value = reader.GetUInt32("id").ToString();
+                        sheet.Rows[i][1].Value = reader.GetString("name");
+                        sheet.Rows[i][2].Value = reader.GetUInt32("age").ToString();
+                    }
+
+                    workBook.Save($@"{Environment.CurrentDirectory}\student.xls");
+                    Console.WriteLine("已导出到exe文件根目录下的student.xls！");
+                }
             }
             catch (Exception e)
             {
