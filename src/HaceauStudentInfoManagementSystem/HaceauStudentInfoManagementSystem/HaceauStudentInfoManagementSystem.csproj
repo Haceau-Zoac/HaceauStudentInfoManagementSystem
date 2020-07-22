@@ -111,6 +111,7 @@
   <ItemGroup>
     <Compile Include="Command.cs" />
     <Compile Include="Main.cs" />
+    <Compile Include="MySql.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

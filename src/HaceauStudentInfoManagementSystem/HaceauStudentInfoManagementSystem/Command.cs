@@ -23,11 +23,43 @@ namespace Haceau.StudentInformationManagementSystem
             }
             catch (Exception e)
             {
-                Console.WriteLine("在读取文件的过程中发生了异常！请检查config.txt");
-                Console.WriteLine($"错误信息：{e.Message}");
+                ErrorMessage(e, "请检查config.txt");
             }
             Back();
             return "";
+        }
+
+        /// <summary>
+        /// 进行错误捕捉
+        /// </summary>
+        /// <param name="func">进行捕捉的函数</param>
+        public static void TryCatch(Action<MySqlConnection> func)
+        {
+            MySqlConnection conn = MySql.CreateMySql(connect);
+            try
+            {
+                conn.Open();
+                func(conn);
+            }
+            catch (Exception e)
+            {
+                ErrorMessage(e);
+            }
+            finally
+            {
+                Back();
+            }
+        }
+
+        /// <summary>
+        /// 错误提示
+        /// </summary>
+        /// <param name="e"></param>
+        /// <param name="other"></param>
+        public static void ErrorMessage(Exception e, string other = "")
+        {
+            Console.WriteLine($"发生了异常！{other}");
+            Console.WriteLine($"错误信息：{e.Message}");
         }
 
         /// <summary>
@@ -44,420 +76,386 @@ namespace Haceau.StudentInformationManagementSystem
         /// <summary>
         /// 读取数据
         /// </summary>
-        public static void Read()
+        public static void Read(MySqlConnection conn)
         {
-            MySqlConnection conn = CreateMySql(connect);
-            try
-            {
-                conn.Open();
-                string sql = "SELECT * FROM student";
-                // 读取数据
-                MySqlCommand cmd = new MySqlCommand(sql, conn);
-                MySqlDataReader reader = cmd.ExecuteReader();
-                // 打印数据
-                Console.WriteLine("ID\t\t姓名\t\t年龄");
-                while (reader.Read())
-                    Console.WriteLine($"{reader.GetUInt32("id")}\t\t{reader.GetString("name")}\t\t{reader.GetUInt32("age")}");
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("读取数据时发生了错误！");
-                Console.WriteLine($"错误信息：{e.Message}");
-            }
-            finally
-            {
-                conn.Clone();
-                Back();
-            }
+            string sql = "SELECT * FROM student";
+            PrintData(MySql.ReadData(sql, conn));
+        }
+
+        /// <summary>
+        /// 打印数据
+        /// </summary>
+        /// <param name="reader"></param>
+        private static void PrintData(MySqlDataReader reader)
+        {
+            Console.WriteLine("ID\t\t姓名\t\t年龄");
+            PlayReader(reader, Console.Write);
+        }
+
+        /// <summary>
+        /// 使用reader
+        /// </summary>
+        /// <param name="reader"></param>
+        /// <param name="func">要使用的函数</param>
+        private static void PlayReader(MySqlDataReader reader, Action<string> func)
+        {
+            while (reader.Read())
+                func($"{reader.GetUInt32("id")}\t\t{reader.GetString("name")}\t\t{reader.GetUInt32("age")}\n");
         }
 
         /// <summary>
         /// 添加数据
         /// </summary>
-        public static void Write()
+        public static void Write(MySqlConnection conn)
         {
-            // 输入数据
+            Student student = InputStudentData();
+            string sql = $"INSERT INTO student(name, age) VALUES('{student.name}', {student.age})";
+            MySql.WriteData(sql, conn);
+            Console.WriteLine("数据添加完成！");
+        }
+
+        /// <summary>
+        /// 输入整数
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="message"></param>
+        private static void Input(out int input, string message)
+        {
+            PromptInput(message);
+                while (!int.TryParse(Console.ReadLine(), out input))
+                {
+                    Console.WriteLine("输入错误！请重新输入");
+                    PromptInput(message);
+                }
+        }
+
+        /// <summary>
+        /// 输入字符
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="message"></param>
+        private static void Input(out char input, string message)
+        {
+            PromptInput(message);
+            while (!char.TryParse(Console.ReadLine().ToLower(), out input))
+            {
+                Console.WriteLine("输入错误");
+                PromptInput("Y/N");
+            }
+        }
+
+        /// <summary>
+        /// 提示输入
+        /// </summary>
+        /// <param name="message"></param>
+        private static void PromptInput(string message) =>
+            Console.Write($"{message} > ");
+
+        /// <summary>
+        /// 输入学生信息
+        /// </summary>
+        private static Student InputStudentData()
+        {
             Student student = new Student();
             Console.WriteLine("请输入学生姓名");
-            Console.Write("name > ");
+            PromptInput("name");
             student.name = Console.ReadLine();
             Console.WriteLine("请输入学生年龄");
-            Console.Write("age > ");
-            while (!int.TryParse(Console.ReadLine(), out student.age))
-            {
-                Console.WriteLine("输入错误！请重新输入");
-                Console.Write("age > ");
-            }
-            // 添加数据
-            MySqlConnection conn = CreateMySql(connect);
-            try
-            {
-                conn.Open();
-                string sql = $"INSERT INTO student(name, age) VALUES('{student.name}', {student.age})";
-                MySqlCommand cmd = new MySqlCommand(sql, conn);
-                cmd.ExecuteNonQuery();
-                Console.WriteLine("数据添加完成！");
+            Input(out student.age, "age");
+            return student;
+        }
 
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("添加数据时发生了错误！");
-                Console.WriteLine($"错误信息：{e.Message}");
-            }
-            finally
-            {
-                conn.Clone();
-                Back();
-            }
+        /// <summary>
+        /// 输入学生ID
+        /// </summary>
+        /// <returns></returns>
+        private static int InputStudentId()
+        {
+            Console.WriteLine("请输入学生ID");
+            Input(out int id, "ID");
+            return id;
         }
 
         /// <summary>
         /// 修改数据
         /// </summary>
-        public static void Change()
+        public static void Change(MySqlConnection conn)
         {
-            // 输入数据
-            Console.WriteLine("请输入学生ID");
-            int id;
-            Console.Write("ID > ");
-            while (!int.TryParse(Console.ReadLine(), out id))
-            {
-                Console.WriteLine("输入错误！");
-                Console.Write("ID > ");
-            }
-            Student student = new Student();
-            Console.WriteLine("请输入学生姓名");
-            Console.Write("name > ");
-            student.name = Console.ReadLine();
-            Console.WriteLine("请输入学生年龄");
-            Console.Write("age > ");
-            while (!int.TryParse(Console.ReadLine(), out student.age))
-            {
-                Console.WriteLine("输入错误！请重新输入");
-                Console.Write("age > ");
-            }
-
-            // 存储数据
-            MySqlConnection conn = CreateMySql(connect);
-            try
-            {
-                conn.Open();
-                string sql = $"UPDATE student SET name='{student.name}',age='{student.age}' WHERE id = {id}";
-                MySqlCommand cmd = new MySqlCommand(sql, conn);
-                cmd.ExecuteNonQuery();
-                Console.WriteLine("数据更改完成！");
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("更改数据时发生了错误！");
-                Console.WriteLine($"错误信息：{e.Message}");
-            }
-            finally
-            {
-                conn.Clone();
-                Back();
-            }
+            int id = InputStudentId();
+            Student student = InputStudentData();
+            string sql = $"UPDATE student SET name='{student.name}',age='{student.age}' WHERE id = {id}";
+            MySql.WriteData(sql, conn);
+            Console.WriteLine("数据更改完成！");
         }
 
         /// <summary>
         /// 删除数据
         /// </summary>
-        public static void Remove()
+        public static void Remove(MySqlConnection conn)
         {
-            // 输入数据
-            Console.WriteLine("请输入学生ID");
-            int id;
-            Console.Write("ID > ");
-            while (!int.TryParse(Console.ReadLine(), out id))
-            {
-                Console.WriteLine("输入错误！");
-                Console.Write("ID > ");
-            }
-
-            // 删除数据
-            MySqlConnection conn = CreateMySql(connect);
-            try
-            {
-                conn.Open();
-                string sql = $"DELETE FROM student WHERE id={id}";
-                MySqlCommand cmd = new MySqlCommand(sql, conn);
-                cmd.ExecuteNonQuery();
-                sql = "ALTER TABLE student DROP id;";
-                MySqlCommand cmd1 = new MySqlCommand(sql, conn);
-                cmd1.ExecuteNonQuery();
-                sql = "ALTER TABLE student ADD id int NOT NULL FIRST;";
-                MySqlCommand cmd2 = new MySqlCommand(sql, conn);
-                cmd2.ExecuteNonQuery();
-                sql = "ALTER TABLE student MODIFY COLUMN id int NOT NULL AUTO_INCREMENT,ADD PRIMARY KEY(id);";
-                MySqlCommand cmd3 = new MySqlCommand(sql, conn);
-                cmd3.ExecuteNonQuery();
-                Console.WriteLine("数据删除完成！");
-
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("删除数据时发生了错误！");
-                Console.WriteLine($"错误信息：{e.Message}");
-            }
-            finally
-            {
-                conn.Clone();
-                Back();
-            }
+            int id = InputStudentId();
+            string sql = $"DELETE FROM student WHERE id={id}";
+            MySql.WriteData(sql, conn);
+            sql = "ALTER TABLE student DROP id;";
+            MySql.WriteData(sql, conn);
+            sql = "ALTER TABLE student ADD id int NOT NULL FIRST;";
+            MySql.WriteData(sql, conn);
+            sql = "ALTER TABLE student MODIFY COLUMN id int NOT NULL AUTO_INCREMENT,ADD PRIMARY KEY(id);";
+            MySql.WriteData(sql, conn);
+            Console.WriteLine("数据删除完成！");
         }
 
         /// <summary>
         /// 清空数据
         /// </summary>
-        public static void Clean()
+        public static void Clean(MySqlConnection conn)
         {
-            Console.WriteLine("此操作不可逆。确定要清除吗？");
-            char ch;
-            Console.Write("y/n > ");
-            while (!char.TryParse(Console.ReadLine(), out ch))
+            if (!Determine())
             {
-                Console.WriteLine("输入错误");
-                Console.Write("y/n > ");
-            }
-            if (ch != 'y')
-            {
-                Console.WriteLine("已取消清除操作。");
-                Back();
+                Cancel("已取消清除操作。");
                 return;
             }
 
-            // 清空数据
-            MySqlConnection conn = CreateMySql(connect);
-            try
-            {
-                conn.Open();
-                string sql = "TRUNCATE TABLE student";
-                MySqlCommand cmd = new MySqlCommand(sql, conn);
-                cmd.ExecuteNonQuery();
-                Console.WriteLine("数据清空完成！");
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("清空数据时发生了错误！");
-                Console.WriteLine($"错误信息：{e.Message}");
-            }
-            finally
-            {
-                conn.Clone();
-                Back();
-            }
+            string sql = "TRUNCATE TABLE student";
+            MySqlCommand cmd = new MySqlCommand(sql, conn);
+            cmd.ExecuteNonQuery();
+            Console.WriteLine("数据清空完成！");
+        }
+
+        /// <summary>
+        /// 确认执行
+        /// </summary>
+        /// <returns></returns>
+        private static bool Determine()
+        {
+            Console.WriteLine("此操作不可逆。确定要清除吗？");
+            Input(out char ch, "Y/N");
+            return ch == 'y';
+        }
+
+        /// <summary>
+        /// 给予提示并返回
+        /// </summary>
+        /// <param name="message"></param>
+        private static void Cancel(string message)
+        {
+            Console.WriteLine(message);
+            Back();
+        }
+
+        /// <summary>
+        /// 选择文件扩展名
+        /// </summary>
+        /// <param name="isOut"></param>
+        /// <returns></returns>
+        private static bool FileSuffix(bool isOut)
+        {
+            Console.WriteLine($"导{(isOut ? '出' : '入')}格式为？");
+            Console.WriteLine("1. txt文件");
+            Console.WriteLine("2. excel文件");
+            int file = 0;
+            while (file != 1 && file != 2)
+                Input(out file, "File");
+            return file == 1;
         }
 
         /// <summary>
         /// 导出数据
         /// </summary>
-        public static void FileExit()
+        public static void FileExit(MySqlConnection conn)
         {
-            MySqlConnection conn = CreateMySql(connect);
-            try
-            {
-                conn.Open();
-                string sql = "SELECT * FROM student";
-                // 读取数据
-                MySqlCommand cmd = new MySqlCommand(sql, conn);
-                MySqlDataReader reader = cmd.ExecuteReader();
-                // 导出格式
-                int file = 1;
-                Console.WriteLine("导出文件格式为？");
-                Console.WriteLine("1. txt文件");
-                Console.WriteLine("2. excel文件");
-                Console.Write("File > ");
-                while (!int.TryParse(Console.ReadLine(), out file))
-                {
-                    Console.WriteLine("输入错误！");
-                    Console.Write("File > ");
-                }
-                // 导出数据
-                int mode = 0;
-                // txt文件
-                if (file == 1)
-                {
-                    if (File.Exists($@"{Environment.CurrentDirectory}\student.txt"))
-                    {
-                        Console.WriteLine("student.txt文件已存在！");
-                        Console.WriteLine("1.覆盖文件");
-                        Console.WriteLine("2.在末尾追加");
-                        Console.WriteLine("3.取消操作");
-                        Console.Write("Mode > ");
-                        while ((!int.TryParse(Console.ReadLine(), out mode)) || (mode != 1 && mode != 2 && mode != 3))
-                        {
-                            Console.WriteLine("输入错误！");
-                            Console.Write("Mode > ");
-                        }
-                    }
-                    if (mode == 3)
-                        return;
-                    FileStream fs = new FileStream($@"student.txt", (mode == 0) ? FileMode.Create : (mode == 1) ? FileMode.Truncate : FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
-                    StreamWriter sw = new StreamWriter(fs, Encoding.UTF8);
-                    sw.Write("ID\t\t\t姓名\t\t\t年龄\n");
-                    while (reader.Read())
-                        sw.Write($"{reader.GetUInt32("id")}\t\t\t{reader.GetString("name")}\t\t\t{reader.GetUInt32("age")}\n");
-                    sw.Close();
-                    fs.Close();
-                    Console.WriteLine("已导出到exe文件根目录下的student.txt！");
-                }
-                // excel文件
-                else
-                {
-                    if (File.Exists($@"{Environment.CurrentDirectory}\student.xls"))
-                    {
-                        Console.WriteLine("student.xls文件已存在！");
-                        Console.WriteLine("1.覆盖文件");
-                        Console.WriteLine("2.取消操作");
-                        Console.Write("Mode > ");
-                        while ((!int.TryParse(Console.ReadLine(), out mode)) || (mode != 1 && mode != 2))
-                        {
-                            Console.WriteLine("输入错误！");
-                            Console.Write("Mode > ");
-                        }
-                    }
-                    if (mode == 1)
-                        File.Delete("student.xls");
-                    else if (mode == 2)
-                        return;
-                    WorkBook workBook = new WorkBook();
-                    Sheet sheet = workBook.NewSheet("student");
-                    sheet.Rows[0][0].Value = "ID";
-                    sheet.Rows[0][1].Value = "姓名";
-                    sheet.Rows[0][2].Value = "年龄";
-                    for (int i = 1; reader.Read(); ++i)
-                    {
-                        sheet.Rows[i][0].Value = reader.GetUInt32("id").ToString();
-                        sheet.Rows[i][1].Value = reader.GetString("name");
-                        sheet.Rows[i][2].Value = reader.GetUInt32("age").ToString();
-                    }
+            string sql = "SELECT * FROM student";
+            // txt文件
+            if (FileSuffix(true))
+                FileExitTxt(MySql.ReadData(sql, conn));
+            // excel文件
+            else
+                FileExitExcel(MySql.ReadData(sql, conn));
+        }
 
-                    workBook.Save($@"{Environment.CurrentDirectory}\student.xls");
-                    Console.WriteLine("已导出到exe文件根目录下的student.xls！");
-                }
-            }
-            catch (Exception e)
+        /// <summary>
+        /// 导出Txt文件（提示+导出）
+        /// </summary>
+        /// <param name="reader"></param>
+        private static void FileExitTxt(MySqlDataReader reader)
+        {
+            int mode = PromptFileExit("txt", "覆盖文件", "在结尾添加", "取消操作");
+            if (mode == 3)
             {
-                Console.WriteLine("导出数据时发生了错误！");
-                Console.WriteLine($"错误信息：{e.Message}");
+                Cancel("已取消导出操作。");
+                return;
             }
-            finally
+            DoFileExitTxt(reader, mode);
+        }
+
+        /// <summary>
+        /// 导出提示
+        /// </summary>
+        /// <param name="suffix"></param>
+        /// <param name="one"></param>
+        /// <param name="two"></param>
+        /// <param name="three"></param>
+        /// <returns></returns>
+        private static int PromptFileExit(string suffix, string one, string two, string three = null)
+        {
+            int mode = 1;
+            if (File.Exists($@"{Environment.CurrentDirectory}\student.{suffix}"))
             {
-                conn.Clone();
-                Back();
+                Console.WriteLine($"student.{suffix}文件已存在！");
+                mode = PromptFileInOut(one, two, three);
             }
+            return mode;
+        }
+
+        /// <summary>
+        /// 文件出入提示
+        /// </summary>
+        private static int PromptFileInOut(string one, string two, string three = null)
+        {
+            int mode = 1;
+            Console.WriteLine($"1.{one}");
+            Console.WriteLine($"2.{two}");
+            Console.WriteLine($"{(three == null ? "" : $"3.{three}")}");
+            do
+                Input(out mode, "Mode");
+            while (mode != 1 && mode != 2 && mode != 3);
+            return mode;
+        }
+
+        /// <summary>
+        /// 导出Txt文件
+        /// </summary>
+        /// <param name="reader"></param>
+        /// <param name="mode"></param>
+        private static void DoFileExitTxt(MySqlDataReader reader, int mode)
+        {
+            FileStream fs = new FileStream($@"student.txt", (mode == 1) ? FileMode.Create : (mode == 2) ? FileMode.Truncate : FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+            StreamWriter sw = new StreamWriter(fs, Encoding.UTF8);
+            sw.Write("ID\t\t\t姓名\t\t\t年龄\n");
+            PlayReader(reader, sw.Write);
+            sw.Close();
+            fs.Close();
+            Console.WriteLine("已导出到exe文件根目录下的student.txt！");
+        }
+
+        /// <summary>
+        /// 导出Excel文件（提示+导出）
+        /// </summary>
+        /// <param name="reader"></param>
+        private static void FileExitExcel(MySqlDataReader reader)
+        {
+            int mode = PromptFileExit("txt", "覆盖文件", "取消操作");
+            if (mode == 2 || mode == 3)
+                return;
+            DoFileExitExcel(reader);
+        }
+
+        /// <summary>
+        /// 导出Excel文件
+        /// </summary>
+        /// <param name="reader"></param>
+        private static void DoFileExitExcel(MySqlDataReader reader)
+        {
+            WorkBook workBook = new WorkBook();
+            Sheet sheet = workBook.NewSheet("student");
+            sheet.Rows[0][0].Value = "ID";
+            sheet.Rows[0][1].Value = "姓名";
+            sheet.Rows[0][2].Value = "年龄";
+            for (int i = 1; reader.Read(); ++i)
+            {
+                sheet.Rows[i][0].Value = reader.GetUInt32("id").ToString();
+                sheet.Rows[i][1].Value = reader.GetString("name");
+                sheet.Rows[i][2].Value = reader.GetUInt32("age").ToString();
+            }
+
+            workBook.Save($@"{Environment.CurrentDirectory}\student.xls");
+            Console.WriteLine("已导出到exe文件根目录下的student.xls！");
         }
 
         /// <summary>
         /// 导入数据
         /// </summary>
-        public static void FileIn()
+        public static void FileIn(MySqlConnection conn)
+        {
+            PromptFileIn(out int mode, out string file);
+            if (mode == 3 || file == "exit")
+                return;
+            string sql;
+            MySqlCommand cmd;
+            if (mode == 1)
+            {
+                sql = "TRUNCATE TABLE student";
+                cmd = new MySqlCommand(sql, conn);
+                cmd.ExecuteNonQuery();
+            }
+            // 导入txt
+            if (FileSuffix(false))
+                FileInTxt(conn, file);
+            // 导入excel
+            else
+                FileInExcel(conn, file);
+        }
+
+        /// <summary>
+        /// 输入文件提示
+        /// </summary>
+        /// <param name="mode"></param>
+        /// <param name="file"></param>
+        private static void PromptFileIn(out int mode, out string file)
         {
             Console.WriteLine("导入方式？");
-            Console.WriteLine("1.覆盖");
-            Console.WriteLine("2.在结尾添加");
-            Console.WriteLine("3.取消");
-            int mode;
-            Console.Write("Mode > ");
-            while (!int.TryParse(Console.ReadLine(), out mode))
-            {
-                Console.WriteLine("输入错误！");
-                Console.Write("Mode > ");
-            }
+            mode = PromptFileInOut("覆盖", "在结尾添加", "取消");
             if (mode == 3)
+            {
+                file = null;
                 return;
+            }
             Console.WriteLine("文件路径？");
             Console.WriteLine("* 输入exit取消");
-            Console.Write("File > ");
-            string file = Console.ReadLine();
-            if (file == "exit")
-                return;
+            PromptInput("File");
+            file = Console.ReadLine();
             if (!File.Exists(file))
             {
                 Console.WriteLine("文件不存在！");
-                Console.Write("File > ");
+                PromptInput("File");
                 file = Console.ReadLine();
-                if (file == "exit")
-                    return;
-            }
-            Console.WriteLine("导入文件格式？");
-            Console.WriteLine("1. txt文件");
-            Console.WriteLine("2. excel文件");
-            Console.WriteLine("3. 取消");
-            int filekz;
-            Console.Write("File > ");
-            while (!int.TryParse(Console.ReadLine(), out filekz) || (filekz != 1 && filekz != 2 && filekz != 3))
-            {
-                Console.WriteLine("输入错误！");
-                Console.Write("File > ");
-            }
-            if (filekz == 3)
-                return;
-            // 读取数据
-            MySqlConnection conn = CreateMySql(connect);
-            try
-            {
-                conn.Open();
-                string sql = "";
-                MySqlCommand cmd;
-                if (mode == 1)
-                {
-                    sql = "TRUNCATE TABLE student";
-                    cmd = new MySqlCommand(sql, conn);
-                    cmd.ExecuteNonQuery();
-                }
-                // 导入txt
-                if (filekz == 1)
-                {
-                    FileStream fs = new FileStream($@"{file}", FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                    StreamReader sr = new StreamReader(fs);
-                    string line;
-                    sr.ReadLine();
-                    while ((line = sr.ReadLine()) != null)
-                    {
-                        List<string> strArr = new List<string>();
-                        strArr = line.Split(new string[] { "\t\t\t" }, StringSplitOptions.RemoveEmptyEntries).ToList();
-                        sql = $"INSERT INTO student(name, age) VALUES('{strArr[1]}', {strArr[2]})";
-                        cmd = new MySqlCommand(sql, conn);
-                        cmd.ExecuteNonQuery();
-                    }
-                    Console.WriteLine("数据读取完成！");
-                }
-                // 导入excel
-                else
-                {
-                    WorkBook workBook = new WorkBook(file);
-                    Sheet sheet = workBook.GetSheet(0);
-                    for (int i = 1; i < sheet.Rows.LastRowNum + 1; ++i)
-                    {
-                        sql = $"INSERT INTO student(name, age) VALUES('{sheet.Rows[i][1].Value}', '{sheet.Rows[i][2].Value}')";
-                        cmd = new MySqlCommand(sql, conn);
-                        cmd.ExecuteNonQuery();
-                    }
-                    Console.WriteLine("数据读取完成！");
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("读取数据时发生了错误！");
-                Console.WriteLine($"错误信息：{e.Message}");
-            }
-            finally
-            {
-                conn.Clone();
-                Back();
             }
         }
 
         /// <summary>
-        /// 与数据库建立连接
+        /// 导入Txt文件
         /// </summary>
-        /// <param name="connect"></param>
-        /// <returns></returns>
-        public static MySqlConnection CreateMySql(string connect)
+        private static void FileInTxt(MySqlConnection conn, string file)
         {
-            MySqlConnection conn = new MySqlConnection(connect);
-            return conn;
+            FileStream fs = new FileStream($@"{file}", FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            StreamReader sr = new StreamReader(fs);
+            string line;
+            sr.ReadLine();
+            while ((line = sr.ReadLine()) != null)
+            {
+                List<string> strArr = new List<string>();
+                strArr = line.Split(new string[] { "\t\t\t" }, StringSplitOptions.RemoveEmptyEntries).ToList();
+                string sql = $"INSERT INTO student(name, age) VALUES('{strArr[1]}', {strArr[2]})";
+                MySql.WriteData(sql, conn);
+            }
+            Console.WriteLine("导入完成！");
+        }
+
+        /// <summary>
+        /// 导入Excel文件
+        /// </summary>
+        /// <param name="conn"></param>
+        /// <param name="file"></param>
+        private static void FileInExcel(MySqlConnection conn, string file)
+        {
+            WorkBook workBook = new WorkBook(file);
+            Sheet sheet = workBook.GetSheet(0);
+            for (int i = 1; i < sheet.Rows.LastRowNum + 1; ++i)
+            {
+                string sql = $"INSERT INTO student(name, age) VALUES('{sheet.Rows[i][1].Value}', '{sheet.Rows[i][2].Value}')";
+                MySql.WriteData(sql, conn);
+            }
+            Console.WriteLine("数据读取完成！");
         }
 
         /// <summary>
@@ -472,8 +470,9 @@ namespace Haceau.StudentInformationManagementSystem
         /// <summary>
         /// 返回
         /// </summary>
-        public static void Back()
+        public static void Back(MySqlConnection conn = null)
         {
+            if (conn != null) conn.Clone();
             Console.Write("请按任意键返回...");
             Console.ReadKey();
             Console.Clear();
