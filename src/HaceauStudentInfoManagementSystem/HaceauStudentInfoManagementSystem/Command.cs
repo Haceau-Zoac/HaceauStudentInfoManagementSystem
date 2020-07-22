@@ -356,6 +356,7 @@ namespace Haceau.StudentInformationManagementSystem
             Console.WriteLine("导入方式？");
             Console.WriteLine("1.覆盖");
             Console.WriteLine("2.在结尾添加");
+            Console.WriteLine("3.取消");
             int mode;
             Console.Write("Mode > ");
             while (!int.TryParse(Console.ReadLine(), out mode))
@@ -363,18 +364,35 @@ namespace Haceau.StudentInformationManagementSystem
                 Console.WriteLine("输入错误！");
                 Console.Write("Mode > ");
             }
+            if (mode == 3)
+                return;
             Console.WriteLine("文件路径？");
+            Console.WriteLine("* 输入exit取消");
             Console.Write("File > ");
             string file = Console.ReadLine();
+            if (file == "exit")
+                return;
             if (!File.Exists(file))
             {
                 Console.WriteLine("文件不存在！");
                 Console.Write("File > ");
                 file = Console.ReadLine();
+                if (file == "exit")
+                    return;
             }
-            FileStream fs = new FileStream($@"{file}", FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            StreamReader sr = new StreamReader(fs);
-
+            Console.WriteLine("导入文件格式？");
+            Console.WriteLine("1. txt文件");
+            Console.WriteLine("2. excel文件");
+            Console.WriteLine("3. 取消");
+            int filekz;
+            Console.Write("File > ");
+            while (!int.TryParse(Console.ReadLine(), out filekz) || (filekz != 1 && filekz != 2 && filekz != 3))
+            {
+                Console.WriteLine("输入错误！");
+                Console.Write("File > ");
+            }
+            if (filekz == 3)
+                return;
             // 读取数据
             MySqlConnection conn = CreateMySql(connect);
             try
@@ -388,18 +406,36 @@ namespace Haceau.StudentInformationManagementSystem
                     cmd = new MySqlCommand(sql, conn);
                     cmd.ExecuteNonQuery();
                 }
-                string line;
-                sr.ReadLine();
-                while ((line = sr.ReadLine()) != null)
+                // 导入txt
+                if (filekz == 1)
                 {
-                    List<string> strArr = new List<string>();
-                    strArr = line.Split(new string[] { "\t\t\t" }, StringSplitOptions.RemoveEmptyEntries).ToList();
-                    sql = $"INSERT INTO student(name, age) VALUES('{strArr[1]}', {strArr[2]})";
-                    cmd = new MySqlCommand(sql, conn);
-                    cmd.ExecuteNonQuery();
+                    FileStream fs = new FileStream($@"{file}", FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                    StreamReader sr = new StreamReader(fs);
+                    string line;
+                    sr.ReadLine();
+                    while ((line = sr.ReadLine()) != null)
+                    {
+                        List<string> strArr = new List<string>();
+                        strArr = line.Split(new string[] { "\t\t\t" }, StringSplitOptions.RemoveEmptyEntries).ToList();
+                        sql = $"INSERT INTO student(name, age) VALUES('{strArr[1]}', {strArr[2]})";
+                        cmd = new MySqlCommand(sql, conn);
+                        cmd.ExecuteNonQuery();
+                    }
+                    Console.WriteLine("数据读取完成！");
                 }
-                Console.WriteLine("数据读取完成！");
-
+                // 导入excel
+                else
+                {
+                    WorkBook workBook = new WorkBook(file);
+                    Sheet sheet = workBook.GetSheet(0);
+                    for (int i = 1; i < sheet.Rows.LastRowNum + 1; ++i)
+                    {
+                        sql = $"INSERT INTO student(name, age) VALUES('{sheet.Rows[i][1].Value}', '{sheet.Rows[i][2].Value}')";
+                        cmd = new MySqlCommand(sql, conn);
+                        cmd.ExecuteNonQuery();
+                    }
+                    Console.WriteLine("数据读取完成！");
+                }
             }
             catch (Exception e)
             {

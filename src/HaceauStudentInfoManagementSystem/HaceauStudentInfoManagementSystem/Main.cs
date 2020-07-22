@@ -9,7 +9,7 @@ namespace Haceau.StudentInformationManagementSystem
         /// </summary>
         public static void Main()
         {
-            Console.WriteLine("Haceau-学生信息管理系统1.2.0");
+            Console.WriteLine("Haceau-学生信息管理系统1.3.0");
 
             // 获取输入
             int command;
